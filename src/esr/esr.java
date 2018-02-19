@@ -8,16 +8,16 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Iterator;
 import java.util.TreeMap;
 import javax.swing.JOptionPane;
 
 
 public class esr {
-    private File file = new File("settings.txt");
+    private File file = new File( "settings.txt" );
 
     public esr() {
         createSettingsFile();
-        addSetting("!key2" , "value2");
     }
 
     // create settings file if not exists
@@ -54,9 +54,32 @@ public class esr {
             }
         }
     }
-    
+    // replace settings with the treemap values
+    private void replaceSettings(TreeMap tr){
+        FileWriter fw = null;
+        PrintWriter pw = null;
+        try {
+            fw = new FileWriter(file);
+            pw = new PrintWriter(fw);
+            Iterator iterator = tr.keySet().iterator();
+            while ( iterator.hasNext() ) {
+                String thek = (String) iterator.next();
+                String dt = thek  + "=>" +  (String) tr.get( thek );
+                pw.println(dt);
+            }
+        } catch (IOException ex) {
+            System.out.println(ex.getMessage());
+        } finally {
+            try {
+                fw.close();
+                pw.close();
+            } catch (IOException ex) {
+            
+            }
+        }
+    }
     // get data from the settings file
-    private TreeMap getData() {
+    private TreeMap getSettings() {
         TreeMap tree = new TreeMap();
         
         try {
@@ -82,7 +105,7 @@ public class esr {
     private boolean checkSettings(String v){
         boolean result = false;
         
-        TreeMap tree = getData();
+        TreeMap tree = getSettings();
         if ( tree.isEmpty() ) {
             result = false;
         }else {
@@ -92,6 +115,40 @@ public class esr {
             }else {
                 result = false;
             }
+        }
+        return result;
+    }
+    // delete key from settings
+    public boolean delKey( String key ){
+        boolean result = false;
+        try {
+            TreeMap tree = getSettings();
+            tree.remove( key );
+            replaceSettings( tree );
+            result = true;
+        }catch ( Exception ex ){
+            
+        }
+        return result;
+    }
+    // update key from settings
+        public boolean edtKey( String oldKey , String key , String val){
+        boolean result = false;
+        try {
+            TreeMap tree = getSettings();
+            if ( checkSettings( oldKey + "=>" + val) ) {
+                tree.remove( oldKey );
+                tree.put(key, val);
+                replaceSettings( tree );
+                result = true;
+            }else {
+                JOptionPane.showMessageDialog(null, "not found");
+            }
+            
+            
+            
+        }catch ( Exception ex ){
+            
         }
         return result;
     }
