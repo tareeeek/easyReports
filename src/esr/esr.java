@@ -4,25 +4,71 @@ package esr;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 
 public class esr {
-    private final File file = new File( "settings.txt" );
-
-    public esr() {
+    private final File file;
+    private String originalReport;
+    private String reportName;
+    public esr(String report) {
+        this.originalReport = report;
+        String[] nm = this.originalReport.split(".");
+        reportName = nm[0];
+        file = new File( "reportSettings/" + reportName + ".txt" );
         createSettingsFile();
+        
     }
     /************************
      * replace data in word file
      ***********************/
-    
+    private void replaceData(ResultSet rs){
+        try {
+            TreeMap tm = new TreeMap();
+            tm = getSettings();
+            XWPFDocument document = new XWPFDocument(OPCPackage.open(originalReport));
+            for ( XWPFParagraph p : document.getParagraphs() ) {
+                List<XWPFRun> runs = p.getRuns();
+                if ( runs != null ) {
+                    for ( XWPFRun r : runs ) {
+                        String text = r.getText(0);
+                        while ( rs.next() ) {
+                            Iterator it = tm.keySet().iterator();
+                            while ( it.hasNext() ) {
+                                String key = (String) it.next();
+                                String value = (String) tm.get(key);
+                                if ( text !=null && text.contains(key) ) {
+                                    text = text.replace(key, String.valueOf(rs.getObject(value)));
+                                    r.setText(text,0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            FileOutputStream out = new FileOutputStream ( new File (reportName + "-show.docx") );
+            document.write( out );
+        } catch (IOException | InvalidFormatException | SQLException ex) {
+            System.out.println(ex);
+        }
+    }
     
     /*************************
      * end replace data
