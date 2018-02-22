@@ -14,12 +14,25 @@ import javax.swing.JOptionPane;
 
 
 public class esr {
-    private File file = new File( "settings.txt" );
+    private final File file = new File( "settings.txt" );
 
     public esr() {
         createSettingsFile();
     }
-
+    /************************
+     * replace data in word file
+     ***********************/
+    
+    
+    /*************************
+     * end replace data
+     ************************/
+    
+    
+    
+/*********************
+ * settings control
+ *********************/
     // create settings file if not exists
     private void createSettingsFile() {
         if ( !file.exists() ) {
@@ -152,4 +165,7 @@ public class esr {
         }
         return result;
     }
+        /****************************
+       * end settings control
+       **************************/
 }
