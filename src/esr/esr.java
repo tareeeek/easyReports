@@ -1,6 +1,7 @@
 
 package esr;
 
+import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,13 +10,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
@@ -25,21 +22,26 @@ import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 
 public class esr {
-    private final File file;
+    private File file= null;
     private String originalReport;
     private String reportName;
     public esr(String report) {
-        this.originalReport = report;
-        String[] nm = this.originalReport.split(".");
-        reportName = nm[0];
-        file = new File( "reportSettings/" + reportName + ".txt" );
-        createSettingsFile();
+        try {
+            this.originalReport = report;
+            File file2 = new File(report);
+            // get file name without extension
+            reportName = report.substring(0, report.lastIndexOf("."));
+            file = new File( "reportSettings/" + reportName + ".txt" );
+            createSettingsFile();
+        }catch ( Exception e ){
+            System.out.println(e);
+        }
         
     }
     /************************
-     * replace data in word file
+     * exec report 
      ***********************/
-    private void replaceData(ResultSet rs){
+    public void execReport(TreeMap valueMap){
         try {
             TreeMap tm = new TreeMap();
             tm = getSettings();
@@ -49,23 +51,23 @@ public class esr {
                 if ( runs != null ) {
                     for ( XWPFRun r : runs ) {
                         String text = r.getText(0);
-                        while ( rs.next() ) {
                             Iterator it = tm.keySet().iterator();
                             while ( it.hasNext() ) {
                                 String key = (String) it.next();
                                 String value = (String) tm.get(key);
                                 if ( text !=null && text.contains(key) ) {
-                                    text = text.replace(key, String.valueOf(rs.getObject(value)));
+                                    text = text.replace(key, String.valueOf(valueMap.get(key)));
                                     r.setText(text,0);
                                 }
                             }
-                        }
                     }
                 }
             }
             FileOutputStream out = new FileOutputStream ( new File (reportName + "-show.docx") );
             document.write( out );
-        } catch (IOException | InvalidFormatException | SQLException ex) {
+            Desktop desktop = Desktop.getDesktop();
+            desktop.open( new File (reportName + "-show.docx"));
+        } catch (IOException | InvalidFormatException ex) {
             System.out.println(ex);
         }
     }
@@ -81,18 +83,23 @@ public class esr {
  *********************/
     // create settings file if not exists
     private void createSettingsFile() {
+        File fil = new File("reportSettings");
+        if ( !fil.exists() ) {
+
+                fil.mkdir();
+
+        }
         if ( !file.exists() ) {
             try {
                 file.createNewFile();
             } catch (IOException ex) {
-                System.out.println(ex.getMessage());
+                System.out.println(ex);
             }
         }
     }
     // add data to the settings file
-    private void addSetting( String setKey , String setValue ){
+    public void addSetting( String setKey , String setValue ){
         if ( checkSettings( setKey + "=>" + setValue ) == true ) {
-                JOptionPane.showMessageDialog(null, "key or value exists before !");
                 return;
             } 
         FileWriter fw = null;
